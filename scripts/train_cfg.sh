@@ -24,7 +24,7 @@ python main_qm9.py \
     --diffusion_noise_precision 1e-5 \
     --diffusion_steps 500 \
     --diffusion_loss_type l2 \
-    --batch_size 256 \
+    --batch_size 128 \
     --nf 128 \
     --n_layers 6 \
     --lr 4e-4 \
