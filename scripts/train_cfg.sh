@@ -24,10 +24,10 @@ python main_qm9.py \
     --diffusion_noise_precision 1e-5 \
     --diffusion_steps 500 \
     --diffusion_loss_type l2 \
-    --batch_size 64 \
+    --batch_size 128 \
     --nf 128 \
     --n_layers 6 \
-    --lr 2e-4 \
+    --lr 4e-4 \
     --normalize_factors "[1,4,1]" \
     --test_epochs 20 \
     --ema_decay 0.9999 \
