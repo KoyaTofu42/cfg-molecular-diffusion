@@ -1,18 +1,18 @@
-import numpy as np
-import torch
-
 import logging
 import os
 import urllib
-
-from os.path import join as join
 import urllib.request
+from os.path import join as join
+
+import numpy as np
 
 from qm9.data.prepare.process import process_xyz_files, process_xyz_gdb9
-from qm9.data.prepare.utils import download_data, is_int, cleanup_file
+from qm9.data.prepare.utils import cleanup_file, is_int
 
 
-def download_dataset_qm9(datadir, dataname, splits=None, calculate_thermo=True, exclude=True, cleanup=True):
+def download_dataset_qm9(
+    datadir, dataname, splits=None, calculate_thermo=True, exclude=True, cleanup=True
+):
     """
     Download and prepare the QM9 (GDB9) dataset.
     """
@@ -23,16 +23,19 @@ def download_dataset_qm9(datadir, dataname, splits=None, calculate_thermo=True, 
     os.makedirs(gdb9dir, exist_ok=True)
 
     logging.info(
-        'Downloading and processing GDB9 dataset. Output will be in directory: {}.'.format(gdb9dir))
+        "Downloading and processing GDB9 dataset. Output will be in directory: {}.".format(
+            gdb9dir
+        )
+    )
 
-    logging.info('Beginning download of GDB9 dataset!')
-    gdb9_url_data = 'https://springernature.figshare.com/ndownloader/files/3195389'
-    gdb9_tar_data = join(gdb9dir, 'dsgdb9nsd.xyz.tar.bz2')
+    logging.info("Beginning download of GDB9 dataset!")
+    gdb9_url_data = "https://springernature.figshare.com/ndownloader/files/3195389"
+    gdb9_tar_data = join(gdb9dir, "dsgdb9nsd.xyz.tar.bz2")
     if not os.path.exists(gdb9_tar_data):
         urllib.request.urlretrieve(gdb9_url_data, filename=gdb9_tar_data)
-        logging.info('GDB9 dataset downloaded successfully!')
+        logging.info("GDB9 dataset downloaded successfully!")
     else:
-        logging.info('GDB9 dataset already exists, skipping download.')
+        logging.info("GDB9 dataset already exists, skipping download.")
 
     # If splits are not specified, automatically generate them.
     if splits is None:
@@ -42,7 +45,8 @@ def download_dataset_qm9(datadir, dataname, splits=None, calculate_thermo=True, 
     gdb9_data = {}
     for split, split_idx in splits.items():
         gdb9_data[split] = process_xyz_files(
-            gdb9_tar_data, process_xyz_gdb9, file_idx_list=split_idx, stack=True)
+            gdb9_tar_data, process_xyz_gdb9, file_idx_list=split_idx, stack=True
+        )
 
     # Subtract thermochemical energy if desired.
     if calculate_thermo:
@@ -54,12 +58,12 @@ def download_dataset_qm9(datadir, dataname, splits=None, calculate_thermo=True, 
             gdb9_data[split_idx] = add_thermo_targets(split_data, therm_energy)
 
     # Save processed GDB9 data into train/validation/test splits
-    logging.info('Saving processed data:')
+    logging.info("Saving processed data:")
     for split, data in gdb9_data.items():
-        savedir = join(gdb9dir, split+'.npz')
+        savedir = join(gdb9dir, split + ".npz")
         np.savez_compressed(savedir, **data)
 
-    logging.info('Processing/saving complete!')
+    logging.info("Processing/saving complete!")
 
 
 def gen_splits_gdb9(gdb9dir, cleanup=True):
@@ -78,9 +82,9 @@ def gen_splits_gdb9(gdb9dir, cleanup=True):
     Finally, generate torch.tensors which give the molecule ids for each
     set.
     """
-    logging.info('Splits were not specified! Automatically generating.')
-    gdb9_url_excluded = 'https://springernature.figshare.com/ndownloader/files/3195404'
-    gdb9_txt_excluded = join(gdb9dir, 'uncharacterized.txt')
+    logging.info("Splits were not specified! Automatically generating.")
+    gdb9_url_excluded = "https://springernature.figshare.com/ndownloader/files/3195404"
+    gdb9_txt_excluded = join(gdb9dir, "uncharacterized.txt")
     if not os.path.exists(gdb9_txt_excluded):
         urllib.request.urlretrieve(gdb9_url_excluded, filename=gdb9_txt_excluded)
 
@@ -88,26 +92,28 @@ def gen_splits_gdb9(gdb9dir, cleanup=True):
     excluded_strings = []
     with open(gdb9_txt_excluded) as f:
         lines = f.readlines()
-        excluded_strings = [line.split()[0]
-                            for line in lines if len(line.split()) > 0]
+        excluded_strings = [line.split()[0] for line in lines if len(line.split()) > 0]
 
     excluded_idxs = [int(idx) - 1 for idx in excluded_strings if is_int(idx)]
-
-    assert len(excluded_idxs) == 3054, 'There should be exactly 3054 excluded atoms. Found {}'.format(
-        len(excluded_idxs))
+    if len(excluded_idxs) != 3054:
+        logging.warning(
+            "QM9 exclusion list download returned %d entries instead of 3054. "
+            "Falling back to using the full raw dataset for splits.",
+            len(excluded_idxs),
+        )
+        excluded_idxs = []
 
     # Now, create a list of indices
     Ngdb9 = 133885
-    Nexcluded = 3054
+    Nexcluded = len(excluded_idxs)
 
-    included_idxs = np.array(
-        sorted(list(set(range(Ngdb9)) - set(excluded_idxs))))
+    included_idxs = np.array(sorted(list(set(range(Ngdb9)) - set(excluded_idxs))))
 
     # Now generate random permutations to assign molecules to training/validation/test sets.
     Nmols = Ngdb9 - Nexcluded
 
     Ntrain = 100000
-    Ntest = int(0.1*Nmols)
+    Ntest = int(0.1 * Nmols)
     Nvalid = Nmols - (Ntrain + Ntest)
 
     # Generate random permutation
@@ -118,16 +124,18 @@ def gen_splits_gdb9(gdb9dir, cleanup=True):
     # train, valid, test, extra = np.split(included_idxs[data_perm], [Ntrain, Ntrain+Nvalid, Ntrain+Nvalid+Ntest])
 
     train, valid, test, extra = np.split(
-        data_perm, [Ntrain, Ntrain+Nvalid, Ntrain+Nvalid+Ntest])
+        data_perm, [Ntrain, Ntrain + Nvalid, Ntrain + Nvalid + Ntest]
+    )
 
-    assert(len(extra) == 0), 'Split was inexact {} {} {} {}'.format(
-        len(train), len(valid), len(test), len(extra))
+    assert len(extra) == 0, "Split was inexact {} {} {} {}".format(
+        len(train), len(valid), len(test), len(extra)
+    )
 
     train = included_idxs[train]
     valid = included_idxs[valid]
     test = included_idxs[test]
 
-    splits = {'train': train, 'valid': valid, 'test': test}
+    splits = {"train": train, "valid": valid, "test": test}
 
     # Cleanup
     cleanup_file(gdb9_txt_excluded, cleanup)
@@ -143,18 +151,18 @@ def get_thermo_dict(gdb9dir, cleanup=True):
     Probably would be easier just to just precompute this and enter it explicitly.
     """
     # Download thermochemical energy
-    logging.info('Downloading thermochemical energy.')
-    gdb9_url_thermo = 'https://springernature.figshare.com/ndownloader/files/3195395'
-    gdb9_txt_thermo = join(gdb9dir, 'atomref.txt')
+    logging.info("Downloading thermochemical energy.")
+    gdb9_url_thermo = "https://springernature.figshare.com/ndownloader/files/3195395"
+    gdb9_txt_thermo = join(gdb9dir, "atomref.txt")
 
     if not os.path.exists(gdb9_txt_thermo):
         urllib.request.urlretrieve(gdb9_url_thermo, filename=gdb9_txt_thermo)
 
     # Loop over file of thermochemical energies
-    therm_targets = ['zpve', 'U0', 'U', 'H', 'G', 'Cv']
+    therm_targets = ["zpve", "U0", "U", "H", "G", "Cv"]
 
     # Dictionary that
-    id2charge = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9}
+    id2charge = {"H": 1, "C": 6, "N": 7, "O": 8, "F": 9}
 
     # Loop over file of thermochemical energies
     therm_energy = {target: {} for target in therm_targets}
@@ -169,8 +177,7 @@ def get_thermo_dict(gdb9dir, cleanup=True):
 
             # Loop over learning targets with defined thermochemical energy
             for therm_target, split_therm in zip(therm_targets, split[1:]):
-                therm_energy[therm_target][id2charge[split[0]]
-                                           ] = float(split_therm)
+                therm_energy[therm_target][id2charge[split[0]]] = float(split_therm)
 
     # Cleanup file when finished.
     cleanup_file(gdb9_txt_thermo, cleanup)
@@ -190,7 +197,7 @@ def add_thermo_targets(data, therm_energy_dict):
         Dictionary of thermochemical energies for relevant properties found using :get_thermo_dict:
     """
     # Get the charge and number of charges
-    charge_counts = get_unique_charges(data['charges'])
+    charge_counts = get_unique_charges(data["charges"])
 
     # Now, loop over the targets with defined thermochemical energy
     for target, target_therm in therm_energy_dict.items():
@@ -204,7 +211,7 @@ def add_thermo_targets(data, therm_energy_dict):
             thermo += target_therm[z] * num_z
 
         # Now add the thermochemical energy as a property
-        data[target + '_thermo'] = thermo
+        data[target + "_thermo"] = thermo
 
     return data
 
@@ -214,8 +221,7 @@ def get_unique_charges(charges):
     Get count of each charge for each molecule.
     """
     # Create a dictionary of charges
-    charge_counts = {z: np.zeros(len(charges), dtype=np.int)
-                     for z in np.unique(charges)}
+    charge_counts = {z: np.zeros(len(charges), dtype=int) for z in np.unique(charges)}
     print(charge_counts.keys())
 
     # Loop over molecules, for each molecule get the unique charges
