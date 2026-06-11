@@ -124,6 +124,8 @@ parser.add_argument('--cfg_dropout_mode', type=str, default='joint',
                     help='joint: mask all properties; independent: mask each independently')
 parser.add_argument('--guidance_scale', type=float, default=1.0,
                     help='Guidance scale w for CFG during sampling (1.0 = standard conditional)')
+parser.add_argument('--wandb_run_id', type=str, default=None,
+                    help='WandB run ID to resume logging into the same chart')
 
 args = parser.parse_args()
 
@@ -176,6 +178,9 @@ else:
     mode = 'online' if args.online else 'offline'
 kwargs = {'entity': args.wandb_usr, 'name': args.exp_name, 'project': 'e3_diffusion', 'config': args,
           'settings': wandb.Settings(_disable_stats=True), 'reinit': True, 'mode': mode}
+if hasattr(args, 'wandb_run_id') and args.wandb_run_id is not None:
+    kwargs['id'] = args.wandb_run_id
+    kwargs['resume'] = 'allow'
 wandb.init(**kwargs)
 wandb.save('*.txt')
 
