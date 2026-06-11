@@ -19,18 +19,18 @@ python main_qm9.py \
     --conditioning alpha mu gap \
     --cfg_dropout_prob 0.15 \
     --cfg_dropout_mode joint \
-    --n_stability_samples 500 \
+    --n_stability_samples 100 \
     --diffusion_noise_schedule polynomial_2 \
     --diffusion_noise_precision 1e-5 \
-    --diffusion_steps 1000 \
+    --diffusion_steps 500 \
     --diffusion_loss_type l2 \
-    --batch_size 32 \
+    --batch_size 64 \
     --nf 128 \
     --n_layers 6 \
-    --lr 1e-4 \
-    --normalize_factors "[1,4,10]" \
-    --test_epochs 50 \
+    --lr 2e-4 \
+    --normalize_factors "[1,4,1]" \
+    --test_epochs 20 \
     --ema_decay 0.9999 \
+    --num_workers 2 \
     --save_model True \
-    --no_wandb \
     $RESUME_FLAG
