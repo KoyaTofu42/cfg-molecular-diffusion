@@ -1,0 +1,18 @@
+services:
+  diffusion:
+    build: .
+    # Enable NVIDIA GPU support in Docker
+    # Note: On Windows, make sure you have installed Docker Desktop and WSL2 with NVIDIA drivers
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      # Mount the current project directory so you can edit files on Windows and run in container
+      # without having to rebuild the image every time.
+      - .:/workspace
+    # The default working directory and command are automatically inherited from the Dockerfile 
+    # (which points to /workspace and runs `python main.py`).
