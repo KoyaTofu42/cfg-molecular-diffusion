@@ -20,3 +20,8 @@ dependencies = [
     "tqdm",
     "wandb"
 ]
+
+[tool.setuptools]
+
+[tool.setuptools.packages.find]
+include = ["configs*", "egnn*", "equivariant_diffusion*", "generated_samples*", "qm9*"]
