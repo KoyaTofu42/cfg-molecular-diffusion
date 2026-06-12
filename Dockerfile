@@ -11,18 +11,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
-# Copy the requirements first to leverage Docker layer caching
-COPY e3_diffusion_for_molecules/requirements.txt e3_diffusion_for_molecules/setup.py ./e3_diffusion_for_molecules/
-
-# Create a virtual environment using --system-site-packages
-# This allows the venv to inherit the highly optimized PyTorch installation from the base image
+# Create a virtual environment using the Nvidia container's system Python
 RUN uv venv --system-site-packages /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-
-# Install python dependencies via uv, utilizing cache mounts to speed up future rebuilds
-# Since we inherit system packages, uv will skip PyTorch and install anything missing
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install -r e3_diffusion_for_molecules/requirements.txt
 
 # Copy the entire project
 COPY . /workspace

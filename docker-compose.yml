@@ -1,6 +1,13 @@
 services:
   diffusion:
     build: .
+    # Use host IPC or increase shm_size to prevent PyTorch DataLoader crashes
+    ipc: host  # Alternative: uncomment `shm_size: '8gb'`
+    
+    # Automatically load local .env file (e.g. for WANDB_API_KEY)
+    env_file: 
+      - .env
+
     # Enable NVIDIA GPU support in Docker
     # Note: On Windows, make sure you have installed Docker Desktop and WSL2 with NVIDIA drivers
     deploy:
@@ -10,9 +17,8 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+              
     volumes:
       # Mount the current project directory so you can edit files on Windows and run in container
       # without having to rebuild the image every time.
       - .:/workspace
-    # The default working directory and command are automatically inherited from the Dockerfile 
-    # (which points to /workspace and runs `python main.py`).
