@@ -34,7 +34,7 @@ def main():
         # '--wandb_usr', 'YOUR_WANDB_USERNAME',
         
         # Uncomment and set path if you are resuming a run
-        # '--resume', 'path/to/checkpoint_dir'
+        # '--resume', 'outputs/cfg_multi_property' 
     ]
 
     if is_notebook:
