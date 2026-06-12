@@ -1,0 +1,8 @@
+e3_diffusion_for_molecules/wandb/
+e3_diffusion_for_molecules/outputs/
+e3_diffusion_for_molecules/__pycache__/
+e3_diffusion_for_molecules/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
