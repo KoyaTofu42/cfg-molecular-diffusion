@@ -65,8 +65,8 @@ def load_xyz_files(path, shuffle=True):
 ### Files ####
 ##############
 def draw_sphere(ax, x, y, z, size, color, alpha):
-    u = np.linspace(0, 2 * np.pi, 100)
-    v = np.linspace(0, np.pi, 100)
+    u = np.linspace(0, 2 * np.pi, 10)
+    v = np.linspace(0, np.pi, 10)
 
     xs = size * np.outer(np.cos(u), np.sin(v))
     ys = size * np.outer(np.sin(u), np.sin(v)) * 0.8  # Correct for matplotlib.

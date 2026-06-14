@@ -16,6 +16,7 @@ import pickle
 import qm9.visualizer as vis
 from qm9.analyze import check_stability
 from os.path import join
+from qm9.utils import compute_mean_mad
 from qm9.sampling import sample_chain, sample
 from configs.datasets_config import get_dataset_info
 
@@ -26,14 +27,14 @@ def check_mask_correct(variables, node_mask):
 
 
 def save_and_sample_chain(args, eval_args, device, flow,
-                          n_tries, n_nodes, dataset_info, id_from=0,
-                          num_chains=100):
+                          n_tries, n_nodes, dataset_info, prop_dist, id_from=0,
+                          num_chains=1):
 
     for i in range(num_chains):
         target_path = f'eval/chain_{i}/'
 
         one_hot, charges, x = sample_chain(
-            args, device, flow, n_tries, dataset_info)
+            args, device, flow, n_tries, dataset_info, prop_dist=prop_dist)
 
         vis.save_xyz_file(
             join(eval_args.model_path, target_path), one_hot, charges, x,
@@ -47,10 +48,10 @@ def save_and_sample_chain(args, eval_args, device, flow,
 
 
 def sample_different_sizes_and_save(args, eval_args, device, generative_model,
-                                    nodes_dist, dataset_info, n_samples=10):
+                                    nodes_dist, dataset_info, prop_dist, n_samples=10):
     nodesxsample = nodes_dist.sample(n_samples)
     one_hot, charges, x, node_mask = sample(
-        args, device, generative_model, dataset_info,
+        args, device, generative_model, dataset_info, prop_dist=prop_dist,
         nodesxsample=nodesxsample)
 
     vis.save_xyz_file(
@@ -61,12 +62,12 @@ def sample_different_sizes_and_save(args, eval_args, device, generative_model,
 
 def sample_only_stable_different_sizes_and_save(
         args, eval_args, device, flow, nodes_dist,
-        dataset_info, n_samples=10, n_tries=50):
+        dataset_info, prop_dist, n_samples=10, n_tries=50):
     assert n_tries > n_samples
 
     nodesxsample = nodes_dist.sample(n_tries)
     one_hot, charges, x, node_mask = sample(
-        args, device, flow, dataset_info,
+        args, device, flow, dataset_info, prop_dist=prop_dist,
         nodesxsample=nodesxsample)
 
     counter = 0
@@ -131,6 +132,11 @@ def main():
 
     flow, nodes_dist, prop_dist = get_model(
         args, device, dataset_info, dataloaders['train'])
+        
+    if prop_dist is not None:
+        property_norms = compute_mean_mad(dataloaders, args.conditioning, args.dataset)
+        prop_dist.set_normalizer(property_norms)
+        
     flow.to(device)
 
     fn = 'generative_model_ema.npy' if args.ema_decay > 0 else 'generative_model.npy'
@@ -142,12 +148,12 @@ def main():
     print('Sampling handful of molecules.')
     sample_different_sizes_and_save(
         args, eval_args, device, flow, nodes_dist,
-        dataset_info=dataset_info, n_samples=30)
+        dataset_info=dataset_info, prop_dist=prop_dist, n_samples=30)
 
     print('Sampling stable molecules.')
     sample_only_stable_different_sizes_and_save(
         args, eval_args, device, flow, nodes_dist,
-        dataset_info=dataset_info, n_samples=10, n_tries=2*10)
+        dataset_info=dataset_info, prop_dist=prop_dist, n_samples=10, n_tries=2*10)
     print('Visualizing molecules.')
     vis.visualize(
         join(eval_args.model_path, 'eval/molecules/'), dataset_info,
@@ -157,7 +163,7 @@ def main():
     save_and_sample_chain(
         args, eval_args, device, flow,
         n_tries=eval_args.n_tries, n_nodes=eval_args.n_nodes,
-        dataset_info=dataset_info)
+        dataset_info=dataset_info, prop_dist=prop_dist)
 
 
 if __name__ == "__main__":
